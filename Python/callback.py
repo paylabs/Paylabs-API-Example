@@ -5,7 +5,13 @@ def main():
     paylabs = Paylabs()
 
     paylabs.set_public_key("""-----BEGIN PUBLIC KEY-----
-PAYLABS PUBLIC KEY
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAgb5E5RCXHAtg8WvpGMV+
+9ouOPLl8FU89VOCc1Di7c7SCEHmFgKjUOitN8iQFrIlNkG2pyKOlD+X3UIY31R2W
+hOfHD+DcpcrKcVuxXHm+cEg9tFmuGy/xfVWRJf8AkJRgUADnPFHGaL89K0uF0sIX
+PeOq1ZGaYbMUYqtU1uS/JWY1Vai7TcoblhtDdQ5WMU49CgRcdIOO8lUjkTjjY1ci
+27duwwt0E9q1JMHjTpa1RHyh66PDfNTj5QlFm1hWhv6vzZC2lmKeyHDLEWoJFYTq
++/FS3Oyg+kyjHI3crLPhaIzkl128FTaXvUWuR/6z30vWSXATzwwXP+7SiB3Uirgt
+RQIDAQAB
 -----END PUBLIC KEY-----""")
 
     #verify callback
