@@ -7,9 +7,15 @@ import base64
 from Crypto.Signature import pkcs1_15
 from Crypto.Hash import SHA256
 from Crypto.PublicKey import RSA
+import pytz
 
 class Paylabs:
+    
     def __init__(self):
+        # Tentukan zona waktu Asia/Jakarta
+        jakarta_tz = pytz.timezone('Asia/Jakarta')
+        now = datetime.now(jakarta_tz)
+        
         self.server = "SIT"
         self.endpoint = "/payment/"
         self.url_prod = "https://pay.paylabs.co.id/payment/"
@@ -17,8 +23,8 @@ class Paylabs:
         self.url_sitch = "https://sitch-pay.paylabs.co.id/payment/"
         self.private_key = None
         self.public_key = None
-        self.date = datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "+07:00"
-        self.id_request = str(datetime.now().strftime("%Y%m%d%H%M%S") + str(random.randint(11111, 99999)))
+        self.date = now.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "+07:00"
+        self.id_request = str(now.strftime("%Y%m%d%H%M%S") + str(random.randint(11111, 99999)))
         self.merchant_trade_no = self.id_request
         self.notify_url = None
         self.signature = None
