@@ -25,7 +25,7 @@ public class ApiRequest {
       String signature = CreateSign.create(path, jsonBodyStr, date);
       System.out.println("signature : " + signature);
 
-      Map<String, String> header = Header.create(date, signature, jsonBody.getString("merchantId"), jsonBody.getString("requestId"));
+      Map<String, String> header = Header.create(date, signature, System.getenv("merchantId"), jsonBody.getString("requestId"));
       System.out.println("Header : "+header);
 
       HttpPost post = new HttpPost(System.getenv("url")+path);
