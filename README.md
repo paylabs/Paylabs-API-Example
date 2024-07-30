@@ -19,4 +19,23 @@ pip install -r requirements.txt
 npm install
 ```
 
+### Java
+We created this sample code with Java version 21.0.1
+
+Environment payin :
+```env
+merchantId=010001
+privateKey=MIIEvxxxxx
+url=https://sit-pay.paylabs.co.id
+version=v2.1
+```
+
+Environment payout :
+```env
+merchantId=010001
+privateKey=MIIEvxxxxx
+url=https://sit-remit-api.paylabs.co.id
+version=v1.2
+```
+
 Don't forget to setup MID & Private Key
