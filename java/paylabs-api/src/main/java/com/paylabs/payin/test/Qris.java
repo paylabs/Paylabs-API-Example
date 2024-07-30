@@ -27,7 +27,7 @@ public class Qris {
     body.setProductInfo(productInfos);
     JSONObject jsonBody = body.toJson();
 
-    String create = ApiRequest.create(jsonBody, "/payment/v2.1/qris/create");
+    String create = ApiRequest.create(jsonBody, "/payment/"+System.getenv("version")+"/qris/create");
     return create;
   }
 }

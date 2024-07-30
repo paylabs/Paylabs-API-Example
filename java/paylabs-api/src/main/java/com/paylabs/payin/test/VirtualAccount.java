@@ -27,7 +27,7 @@ public class VirtualAccount {
     body.setProductInfo(productInfos);
     JSONObject jsonBody = body.toJson();
 
-    String create = ApiRequest.create(jsonBody, "/payment/v2.1/va/create");
+    String create = ApiRequest.create(jsonBody, "/payment/"+System.getenv("version")+"/va/create");
     return create;
   }
 }

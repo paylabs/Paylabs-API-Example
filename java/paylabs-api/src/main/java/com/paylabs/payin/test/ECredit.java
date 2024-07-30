@@ -32,7 +32,7 @@ public class ECredit {
     body.setProductInfo(productInfos);
     JSONObject jsonBody = body.toJson();
 
-    String create = ApiRequest.create(jsonBody, "/payment/v2.1/dd/create");
+    String create = ApiRequest.create(jsonBody, "/payment/"+System.getenv("version")+"/dd/create");
     return create;
   }
 }

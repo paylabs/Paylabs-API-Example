@@ -27,7 +27,7 @@ public class OTC {
     body.setProductInfo(productInfos);
     JSONObject jsonBody = body.toJson();
 
-    String create = ApiRequest.create(jsonBody, "/payment/v2.1/store/create");
+    String create = ApiRequest.create(jsonBody, "/payment/"+System.getenv("version")+"/store/create");
     return create;
   }
 }

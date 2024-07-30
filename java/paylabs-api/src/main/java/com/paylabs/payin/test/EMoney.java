@@ -32,7 +32,7 @@ public class EMoney {
     body.setProductInfo(productInfos);
     JSONObject jsonBody = body.toJson();
 
-    String create = ApiRequest.create(jsonBody, "/payment/v2.1/ewallet/create");
+    String create = ApiRequest.create(jsonBody, "/payment/"+System.getenv("version")+"/ewallet/create");
     return create;
   }
 }
