@@ -1,4 +1,7 @@
 <?php
+
+// namespace App\Libraries;
+
 date_default_timezone_set('Asia/jakarta');
 
 class Paylabs
@@ -9,6 +12,7 @@ class Paylabs
     public $endpoint = "/payment/";
     public $url_prod = "https://pay.paylabs.co.id/payment/";
     public $url_sit = "https://sit-pay.paylabs.co.id/payment/";
+    public $log = false;
     public $privateKey;
     public $publicKey;
     public $date;
@@ -35,6 +39,11 @@ class Paylabs
     public function setVersion($version)
     {
         $this->version = $version;
+    }
+
+    public function setLog($log = false)
+    {
+        $this->log = $log;
     }
 
     public function setIdRequest($id)
@@ -263,12 +272,20 @@ class Paylabs
         return $this->body;
     }
 
-    private function generateSign()
+    public function displayLog($msg)
+    {
+        if ($this->log == true) {
+            var_dump($msg);
+            echo "<br><br>";
+        }
+    }
+
+    public function generateSign()
     {
         $shaJson  = strtolower(hash('sha256', json_encode($this->body, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)));
         $signatureBefore = "POST:" . $this->getEndpoint() . $this->path . ":" . $shaJson . ":" . $this->date;
         $binary_signature = "";
-        var_dump($signatureBefore);
+        $this->displayLog($signatureBefore);
 
         $algo = OPENSSL_ALGO_SHA256;
         openssl_sign($signatureBefore, $binary_signature, $this->privateKey, $algo);
@@ -303,9 +320,9 @@ class Paylabs
         $this->generateSign();
         $this->setHeaders();
 
-        var_dump($this->getUrl());
-        var_dump(json_encode($this->body, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
-        var_dump(json_encode($this->headers, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+        $this->displayLog($this->getUrl());
+        $this->displayLog(json_encode($this->body, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+        $this->displayLog(json_encode($this->headers, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
 
         $curl = curl_init();
 
@@ -329,5 +346,27 @@ class Paylabs
         $response = curl_exec($curl);
         curl_close($curl);
         return json_decode($response);
+    }
+
+    public function responseCallback($path)
+    {
+        $this->path = $path;
+        $this->body = array(
+            "merchantId" => $this->mid,
+            "requestId" => $this->idRequest,
+            "errCode" => "0"
+        );
+
+        $signature = $this->generateSign();
+
+        // Set HTTP response headers
+        header("Content-Type: application/json;charset=utf-8");
+        header("X-TIMESTAMP: " . $this->date);
+        header("X-SIGNATURE: " . $signature);
+        header("X-PARTNER-ID: " . $this->mid);
+        header("X-REQUEST-ID: " . $this->idRequest);
+
+        // Encode the response as JSON and output it
+        echo json_encode($this->body, JSON_UNESCAPED_UNICODE);
     }
 }
