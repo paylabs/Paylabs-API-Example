@@ -323,7 +323,11 @@ class Paylabs
         $this->displayLog($this->getUrl());
         $this->displayLog(json_encode($this->body, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
         $this->displayLog(json_encode($this->headers, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+        return $this->post();
+    }
 
+    public function post()
+    {
         $curl = curl_init();
 
         curl_setopt_array($curl, array(
@@ -346,6 +350,25 @@ class Paylabs
         $response = curl_exec($curl);
         curl_close($curl);
         return json_decode($response);
+    }
+
+    public function inquiry($path, $merchantTradeNo, $paymentType, $storeId = null)
+    {
+        $this->idRequest = uniqid();
+        $this->path = $path;
+        $this->body = ["requestId" => $this->idRequest, "merchantId" => $this->mid, "merchantTradeNo" => $merchantTradeNo, "paymentType" => $paymentType];
+        if (!is_null($storeId)) {
+            $this->body['storeId'] = strval($storeId);
+        }
+
+        $this->generateSign();
+        $this->setHeaders();
+
+        $this->displayLog($this->getUrl());
+        $this->displayLog(json_encode($this->body, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+        $this->displayLog(json_encode($this->headers, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+
+        return $this->post();
     }
 
     public function responseCallback($path)
