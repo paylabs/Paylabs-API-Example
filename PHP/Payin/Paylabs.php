@@ -400,12 +400,28 @@ class Paylabs
             "responseCode" => "2002500",
             "responseMessage" => "Success",
             "virtualAccountData" => [
+                "paymentFlagReason" => [
+                    "english" => "Success",
+                    "indonesia" => "Sukses"
+                ],
                 "partnerServiceId" => "  " . $this->mid,
                 "customerNo" => $data['customerNo'],
                 "virtualAccountNo" => $data['virtualAccountNo'],
                 "virtualAccountName" => $data['virtualAccountName'],
+                "trxId" => $data['trxId'],
                 "paymentRequestId" => $data['paymentRequestId'],
-            ]
+                "paidAmount" => $data['paidAmount'],
+                "paidBills" => $data['paidBills'],
+                "totalAmount" => $data['totalAmount'],
+                "trxDateTime" => $data['trxDateTime'],
+                "referenceNo" => $data['referenceNo'],
+                "paymentType" => "1",
+                "flagAdvise" => "Y",
+                "paymentFlagStatus" => "00",
+                "billDetails" => [],
+                "freeTexts" => []
+            ],
+            "additionalInfo" => (object) [],
         ];
 
         $signature = $this->generateSign();
