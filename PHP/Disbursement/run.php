@@ -18,10 +18,11 @@ $paylabs->setPublicKey($pubKey);
 $paylabs->setLog(true);
 
 $inquiry = $paylabs->inquiry("081234567890", "DANA", "wallet", 20000);
-$transfer = $paylabs->transfer($inquiry->referenceNo, "081234567890", $inquiry->beneficiaryAccountName, "DANA", "wallet", 20000, "https://waaa.irfan.co.id/disbursement/callback.php");
+$transfer = $paylabs->transfer($inquiry->referenceNo, "081234567890", $inquiry->beneficiaryAccountName, "DANA", "wallet", 20000, "https://domain.com/callback.php");
 $status = $paylabs->status($transfer->partnerReferenceNo);
 $balance = $paylabs->balance();
-
+$response = $paylabs->getTransferFile("20250414214559470", "2025-04-13");
+print_r($response);
 
 // VERIFY CALLBACK
 $sign = "nAytsVfmquMVB10IDhMso0KqrEoyy5cqH9pNyBPOrbMePnA0W0fAuv6O/INI5bdd2CFjbubZxOfXhVRnzaiB5AwISTRHhMNRQXBO2f+32AXNqH+DxBlJTlEXnmQuUin/XCHCGMQJ7nFH1e/MDYfLiiPgnK17FryMGnPwGWlS4+gkPg3C5tBppCaLlP3vnGIrHoX965HfeJws4W9/nIzet7P6x5BWJ4Ihqz2L8wDm7DvGwDdl0b/eEjj3YNnPlA6YFyoS6oy0OLN4GaEUO/vbQA0fCQw1lxZpPhW+9A9WBscVUTvjb1M4XnwJeelk7ncygSoqmQBvdNG8Ui0C5qW4lw==";
