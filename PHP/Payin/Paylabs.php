@@ -1,439 +1,162 @@
 <?php
 
-// namespace App\Libraries;
-
-date_default_timezone_set('Asia/jakarta');
-
 class Paylabs
 {
-    public $server = "SIT";
-    public $mid;
-    public $version;
-    public $endpoint = "/payment/";
-    public $url_prod = "https://pay.paylabs.co.id/payment/";
-    public $url_sit = "https://sit-pay.paylabs.co.id/payment/";
-    public $log = false;
-    public $privateKey;
-    public $publicKey;
-    public $date;
-    public $idRequest;
-    public $merchantTradeNo;
-    public $notifyUrl;
-    public $signature;
-    public $path;
-    public $headers;
-    public $body;
+    private $server;
+    private $mid;
+    private $version;
+    private $log;
+    private $privateKey;
+    private $publicKey;
 
-    public function __construct()
+    private $date;
+    private $idRequest;
+    private $merchantTradeNo;
+
+    private $url = [
+        "SIT" => "https://sit-pay.paylabs.co.id/payment/",
+        "PROD" => "https://pay.paylabs.co.id/payment/"
+    ];
+
+    public function __construct(array $config = [])
     {
+        date_default_timezone_set('Asia/Jakarta');
         $this->date = date("Y-m-d") . "T" . date("H:i:s.B") . "+07:00";
         $this->idRequest = strval(date("YmdHis") . rand(11111, 99999));
         $this->merchantTradeNo = $this->idRequest;
-    }
 
-    public function setMid($mid)
-    {
-        $this->mid = $mid;
-    }
+        $this->server = $config['server'] ?? 'SIT';
+        $this->mid = $config['mid'] ?? null;
+        $this->version = $config['version'] ?? null;
+        $this->log = $config['log'] ?? false;
 
-    public function setVersion($version)
-    {
-        $this->version = $version;
-    }
-
-    public function setLog($log = false)
-    {
-        $this->log = $log;
-    }
-
-    public function setIdRequest($id)
-    {
-        $this->idRequest = $id;
-    }
-
-    public function setMercTradeNo($no)
-    {
-        $this->merchantTradeNo = $no;
-    }
-
-    public function setNotifyUrl($url)
-    {
-        $this->notifyUrl = $url;
-    }
-
-    public function setServer($server)
-    {
-        $this->server = $server;
-    }
-
-    public function setPrivateKey($private_key)
-    {
-        $this->privateKey = '-----BEGIN RSA PRIVATE KEY-----
-' . $private_key . '
------END RSA PRIVATE KEY-----';
-    }
-
-    public function setPublicKey($public_key)
-    {
-        $this->publicKey = '-----BEGIN PUBLIC KEY-----
-' . $public_key . '
------END PUBLIC KEY-----';
-    }
-
-    private function getUrl()
-    {
-        if ($this->server == "PROD") {
-            return $this->url_prod . $this->version;
+        if (!empty($config['privateKey'])) {
+            $this->setPrivateKey($config['privateKey']);
         }
-
-        if ($this->server == "SIT") {
-            return $this->url_sit . $this->version;
+        if (!empty($config['publicKey'])) {
+            $this->setPublicKey($config['publicKey']);
         }
-
-        return $this->url_sit . $this->version;
     }
 
-    private function getEndpoint()
+    public function setPrivateKey($key)
     {
-        return $this->endpoint . $this->version;
+        $this->privateKey = "-----BEGIN RSA PRIVATE KEY-----\n{$key}\n-----END RSA PRIVATE KEY-----";
     }
 
-    private function setHeaders()
+    public function setPublicKey($key)
     {
-        $this->headers = array(
-            'X-TIMESTAMP:' . $this->date,
-            'X-SIGNATURE:' . $this->signature,
-            'X-PARTNER-ID:' . $this->mid,
-            'X-REQUEST-ID:' . $this->idRequest,
-            'Content-Type:application/json;charset=utf-8'
-        );
-
-        return $this->headers;
+        $this->publicKey = "-----BEGIN PUBLIC KEY-----\n{$key}\n-----END PUBLIC KEY-----";
     }
 
-    public function setH5($amount, $phoneNumber, $product, $redirectUrl, $payer = "Testing", $storeId = null, $notifyUrl = null)
+    private function getFullUrl($path)
     {
-        $this->path = "/h5/createLink";
-        $this->body = [
+        $base = $this->url[$this->server] ?? $this->url["SIT"];
+        return $base . $this->version . $path;
+    }
+
+    private function buildHeaders($body, $path)
+    {
+        $signature = $this->generateSignature($body, $path);
+        return [
+            'X-TIMESTAMP: ' . $this->date,
+            'X-SIGNATURE: ' . $signature,
+            'X-PARTNER-ID: ' . $this->mid,
+            'X-REQUEST-ID: ' . $this->idRequest,
+            'Content-Type: application/json;charset=utf-8'
+        ];
+    }
+
+    private function generateSignature($body, $path)
+    {
+        $hash = strtolower(hash('sha256', json_encode($body, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)));
+        $data = "POST:/payment/{$this->version}{$path}:{$hash}:{$this->date}";
+
+        if ($this->log) var_dump($data);
+
+        openssl_sign($data, $binary, $this->privateKey, OPENSSL_ALGO_SHA256);
+        return base64_encode($binary);
+    }
+
+    public function request($path, array $body)
+    {
+        // Set default fields
+        $default = [
             'merchantId' => $this->mid,
-            'merchantTradeNo' => $this->merchantTradeNo,
             'requestId' => $this->idRequest,
-            'amount' => $amount,
-            'phoneNumber' => $phoneNumber,
-            'productName' => $product,
-            'redirectUrl' => $redirectUrl,
-            'payer' => $payer
+            'merchantTradeNo' => $this->merchantTradeNo
         ];
 
-        if (!is_null($storeId)) {
-            $this->body['storeId'] = strval($storeId);
-        }
-        if (!is_null($notifyUrl)) {
-            $this->body['notifyUrl'] = $notifyUrl;
-        }
+        $payload = array_merge($default, $body);
 
-        return $this->body;
-    }
+        $headers = $this->buildHeaders($payload, $path);
 
-    public function setQRIS($amount, $product, $storeId = null, $notifyUrl = null, $expired = null)
-    {
-        $this->path = "/qris/create";
-        $this->body = [
-            'merchantId' => $this->mid,
-            'merchantTradeNo' => $this->merchantTradeNo,
-            'requestId' => $this->idRequest,
-            'paymentType' => "QRIS",
-            'amount' => $amount,
-            'productName' => $product
-        ];
-
-        if (!is_null($storeId)) {
-            $this->body['storeId'] = strval($storeId);
-        }
-        if (!is_null($notifyUrl)) {
-            $this->body['notifyUrl'] = $notifyUrl;
-        }
-        if (!is_null($expired)) {
-            $this->body['expire'] = $expired;
+        if ($this->log) {
+            var_dump($this->getFullUrl($path));
+            var_dump($payload);
+            var_dump($headers);
         }
 
-        return $this->body;
-    }
-
-    public function setEMoney($channel, $amount, $product, $storeId = null, $notifyUrl = null)
-    {
-        $this->path = "/ewallet/create";
-        $this->body = [
-            'merchantId' => $this->mid,
-            'merchantTradeNo' => $this->merchantTradeNo,
-            'requestId' => $this->idRequest,
-            'paymentType' => $channel,
-            'amount' => $amount,
-            'productName' => $product
-        ];
-
-        if (!is_null($storeId)) {
-            $this->body['storeId'] = strval($storeId);
-        }
-        if (!is_null($notifyUrl)) {
-            $this->body['notifyUrl'] = $notifyUrl;
-        }
-
-        return $this->body;
-    }
-
-    public function setVA($channel, $amount, $product, $payer, $storeId = null, $notifyUrl = null)
-    {
-        $this->path = "/va/create";
-        $this->body = [
-            'merchantId' => $this->mid,
-            'merchantTradeNo' => $this->merchantTradeNo,
-            'requestId' => $this->idRequest,
-            'paymentType' => $channel,
-            'amount' => $amount,
-            'productName' => $product,
-            'payer' => $payer
-        ];
-
-        if (!is_null($storeId)) {
-            $this->body['storeId'] = strval($storeId);
-        }
-        if (!is_null($notifyUrl)) {
-            $this->body['notifyUrl'] = $notifyUrl;
-        }
-
-        return $this->body;
-    }
-
-    public function setCC($channel, $amount, $product, $payer, $storeId = null, $notifyUrl = null)
-    {
-        $this->path = "/cc/create";
-        $this->body = [
-            'merchantId' => $this->mid,
-            'merchantTradeNo' => $this->merchantTradeNo,
-            'requestId' => $this->idRequest,
-            'paymentType' => $channel,
-            'amount' => $amount,
-            'productName' => $product
-        ];
-
-        if (!is_null($storeId)) {
-            $this->body['storeId'] = strval($storeId);
-        }
-        if (!is_null($notifyUrl)) {
-            $this->body['notifyUrl'] = $notifyUrl;
-        }
-
-        return $this->body;
-    }
-
-    public function setECredit($channel, $amount, $product, $storeId = null, $notifyUrl = null)
-    {
-        $this->path = "/dd/create";
-        $this->body = [
-            'merchantId' => $this->mid,
-            'merchantTradeNo' => $this->merchantTradeNo,
-            'requestId' => $this->idRequest,
-            'paymentType' => $channel,
-            'amount' => $amount,
-            'productName' => $product
-        ];
-
-        if (!is_null($storeId)) {
-            $this->body['storeId'] = strval($storeId);
-        }
-        if (!is_null($notifyUrl)) {
-            $this->body['notifyUrl'] = $notifyUrl;
-        }
-
-        return $this->body;
-    }
-
-    public function setOTC($channel, $amount, $product, $payer, $storeId = null, $notifyUrl = null)
-    {
-        $this->path = "/store/create";
-        $this->body = [
-            'merchantId' => $this->mid,
-            'merchantTradeNo' => $this->merchantTradeNo,
-            'requestId' => $this->idRequest,
-            'paymentType' => $channel,
-            'amount' => $amount,
-            'productName' => $product,
-            'payer' => $payer,
-        ];
-
-        if (!is_null($storeId)) {
-            $this->body['storeId'] = strval($storeId);
-        }
-        if (!is_null($notifyUrl)) {
-            $this->body['notifyUrl'] = $notifyUrl;
-        }
-
-        return $this->body;
-    }
-
-    public function displayLog($msg)
-    {
-        if ($this->log == true) {
-            var_dump($msg);
-            echo "<br><br>";
-        }
-    }
-
-    public function generateSign()
-    {
-        $shaJson  = strtolower(hash('sha256', json_encode($this->body, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)));
-        $signatureBefore = "POST:" . $this->getEndpoint() . $this->path . ":" . $shaJson . ":" . $this->date;
-        $binary_signature = "";
-        $this->displayLog($signatureBefore);
-
-        $algo = OPENSSL_ALGO_SHA256;
-        openssl_sign($signatureBefore, $binary_signature, $this->privateKey, $algo);
-
-        $sign = base64_encode($binary_signature);
-        $this->signature = $sign;
-        return $sign;
-    }
-
-    public function verifySign($path, $dataToSign, $sign, $dateTime)
-    {
-        $binary_signature = base64_decode($sign);
-        $shaJson  = strtolower(hash('sha256', $dataToSign));
-        $signatureAfter = "POST:" . $path . ":" . $shaJson . ":" . $dateTime;
-
-        $validateKey = openssl_pkey_get_public($this->publicKey);
-        if ($validateKey === false) {
-            die("Error loading public key");
-        }
-
-        $algo =  OPENSSL_ALGO_SHA256;
-        $verificationResult = openssl_verify($signatureAfter, $binary_signature, $this->publicKey, $algo);
-
-        if ($verificationResult === 1) {
-            return true;
-        }
-        return false;
-    }
-
-    public function request()
-    {
-        $this->generateSign();
-        $this->setHeaders();
-
-        $this->displayLog($this->getUrl());
-        $this->displayLog(json_encode($this->body, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
-        $this->displayLog(json_encode($this->headers, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
-        return $this->post();
-    }
-
-    public function post()
-    {
-        $curl = curl_init();
-
-        curl_setopt_array($curl, array(
-            CURLOPT_URL => $this->getUrl() . $this->path,
+        // Send request
+        $ch = curl_init($this->getFullUrl($path));
+        curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
-            CURLINFO_HEADER_OUT => true,
-            CURLOPT_ENCODING => '',
-            CURLOPT_MAXREDIRS => 10,
-            CURLOPT_TIMEOUT => 0,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-            CURLOPT_CUSTOMREQUEST => 'POST',
-            CURLOPT_POSTFIELDS => json_encode($this->body, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-            CURLOPT_HTTPHEADER => $this->headers,
-        ));
-        $headerSent = curl_getinfo($curl, CURLINFO_HEADER_OUT);
-        $information = curl_getinfo($curl);
-        $httpcode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            CURLOPT_HTTPHEADER => $headers
+        ]);
 
-        $response = curl_exec($curl);
-        curl_close($curl);
-        return json_decode($response);
+        $response = curl_exec($ch);
+        curl_close($ch);
+
+        return json_decode($response, true);
     }
 
-    public function inquiry($path, $merchantTradeNo, $paymentType, $storeId = null)
+    public function verifySignature($path, $bodyRaw, $signature, $timestamp)
     {
-        $this->idRequest = uniqid();
-        $this->path = $path;
-        $this->body = ["requestId" => $this->idRequest, "merchantId" => $this->mid, "merchantTradeNo" => $merchantTradeNo, "paymentType" => $paymentType];
-        if (!is_null($storeId)) {
-            $this->body['storeId'] = strval($storeId);
+        // Hash body
+        $hash = strtolower(hash('sha256', $bodyRaw));
+
+        // Build string to verify
+        $data = "POST:{$path}:{$hash}:{$timestamp}";
+
+        if ($this->log) {
+            var_dump("String to verify:", $data);
         }
 
-        $this->generateSign();
-        $this->setHeaders();
+        // Decode signature from base64
+        $binarySignature = base64_decode($signature);
 
-        $this->displayLog($this->getUrl());
-        $this->displayLog(json_encode($this->body, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
-        $this->displayLog(json_encode($this->headers, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+        // Load public key
+        $publicKey = openssl_pkey_get_public($this->publicKey);
+        if (!$publicKey) {
+            throw new Exception("Error loading public key");
+        }
 
-        return $this->post();
+        // Verify signature
+        $verify = openssl_verify($data, $binarySignature, $publicKey, OPENSSL_ALGO_SHA256);
+
+        return $verify === 1;
     }
 
     public function responseCallback($path)
     {
-        $this->path = $path;
-        $this->body = array(
-            "merchantId" => $this->mid,
-            "requestId" => $this->idRequest,
-            "errCode" => "0"
-        );
-
-        $signature = $this->generateSign();
-
-        // Set HTTP response headers
-        header("Content-Type: application/json;charset=utf-8");
-        header("X-TIMESTAMP: " . $this->date);
-        header("X-SIGNATURE: " . $signature);
-        header("X-PARTNER-ID: " . $this->mid);
-        header("X-REQUEST-ID: " . $this->idRequest);
-
-        // Encode the response as JSON and output it
-        echo json_encode($this->body, JSON_UNESCAPED_UNICODE);
-    }
-
-    public function responseCallbackSnap($path, $data)
-    {
-        $this->path = $path;
-        $this->body = [
-            "responseCode" => "2002500",
-            "responseMessage" => "Success",
-            "virtualAccountData" => [
-                "paymentFlagReason" => [
-                    "english" => "Success",
-                    "indonesia" => "Sukses"
-                ],
-                "partnerServiceId" => "  " . $this->mid,
-                "customerNo" => $data['customerNo'],
-                "virtualAccountNo" => $data['virtualAccountNo'],
-                "virtualAccountName" => $data['virtualAccountName'],
-                "trxId" => $data['trxId'],
-                "paymentRequestId" => $data['paymentRequestId'],
-                "paidAmount" => $data['paidAmount'],
-                "paidBills" => $data['paidBills'],
-                "totalAmount" => $data['totalAmount'],
-                "trxDateTime" => $data['trxDateTime'],
-                "referenceNo" => $data['referenceNo'],
-                "paymentType" => "1",
-                "flagAdvise" => "Y",
-                "paymentFlagStatus" => "00",
-                "billDetails" => [],
-                "freeTexts" => []
-            ],
-            "additionalInfo" => (object) [],
+        $payload = [
+            'merchantId' => $this->mid,
+            'requestId' => $this->idRequest,
+            'errCode' => '0'
         ];
 
-        $signature = $this->generateSign();
+        // Generate signature
+        $signature = $this->generateSignature($payload, $path);
 
-        // Set HTTP response headers
-        header("Content-Type: application/json;charset=utf-8");
-        header("X-TIMESTAMP: " . $this->date);
-        header("X-SIGNATURE: " . $signature);
-        header("X-PARTNER-ID: " . $this->mid);
-        header("X-REQUEST-ID: " . $this->idRequest);
+        // Set HTTP headers
+        header('Content-Type: application/json;charset=utf-8');
+        header('X-TIMESTAMP: ' . $this->date);
+        header('X-SIGNATURE: ' . $signature);
+        header('X-PARTNER-ID: ' . $this->mid);
+        header('X-REQUEST-ID: ' . $this->idRequest);
 
-        // Encode the response as JSON and output it
-        echo json_encode($this->body, JSON_UNESCAPED_UNICODE);
+        // Return JSON
+        echo json_encode($payload, JSON_UNESCAPED_UNICODE);
     }
 }
