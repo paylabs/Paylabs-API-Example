@@ -9,9 +9,9 @@ class Paylabs
     private $server = "SIT";
     private $mid;
     private $version;
-    private $endpoint = "/api-pay/remit/";
-    private $url_prod = "https://remit-api.paylabs.co.id/api-pay/remit/";
-    private $url_sit = "https://sit-remit-api.paylabs.co.id/api-pay/remit/";
+    private $endpoint = "/api-pay/snap/";
+    private $url_prod = "https://remit-api.paylabs.co.id/api-pay/snap/";
+    private $url_sit = "https://sit-remit-api.paylabs.co.id/api-pay/snap/";
     private $log = false;
     private $privateKey;
     private $publicKey;
@@ -26,6 +26,7 @@ class Paylabs
     private $accountNo;
     private $bankName;
     private $bankCode;
+    private $merchantTradeNo;
 
     public function __construct()
     {
@@ -234,6 +235,48 @@ class Paylabs
         return $this->post();
     }
 
+    public function getTransferFile($partnerReferenceNo, $date)
+    {
+        $this->path = "/transfer-file";
+        $this->body = [
+            'partnerReferenceNo' => $partnerReferenceNo,
+            'date' => $date
+        ];
+
+        return $this->get(); // metode GET dengan header + signature
+    }
+
+    private function get()
+    {
+        $this->generateSign();      // Buat X-SIGNATURE
+        $this->setHeaders();        // Buat X-TIMESTAMP, X-SIGNATURE, dll
+        $this->displayLog($this->getUrl());
+        $this->displayLog(json_encode($this->body, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+        $this->displayLog(json_encode($this->headers, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+
+        $curl = curl_init();
+        curl_setopt_array($curl, array(
+            CURLOPT_URL => $this->getUrl() . $this->path,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLINFO_HEADER_OUT => true,
+            CURLOPT_ENCODING => '',
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 0,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => 'GET',
+            CURLOPT_POSTFIELDS => json_encode($this->body, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            CURLOPT_HTTPHEADER => $this->headers,
+        ));
+
+        $response = curl_exec($curl);
+        curl_close($curl);
+
+        $this->displayLog("RESPONSE: " . $response);
+        return json_decode($response);
+    }
+
+
     private function post()
     {
         $curl = curl_init();
@@ -261,6 +304,7 @@ class Paylabs
         $this->displayLog($response);
         return json_decode($response);
     }
+
 
     public function responseCallback($path)
     {
