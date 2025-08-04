@@ -159,4 +159,26 @@ class Paylabs
         // Return JSON
         echo json_encode($payload, JSON_UNESCAPED_UNICODE);
     }
+
+    public function responseCallbackSnap($data)
+    {
+        $body = [
+            "responseCode" => "2002500",
+            "responseMessage" => "Success",
+            "virtualAccountData" => [
+                "partnerServiceId" => "  " . $this->mid,
+                "customerNo" => $data['customerNo'],
+                "virtualAccountNo" => $data['virtualAccountNo'],
+                "virtualAccountName" => $data['virtualAccountName'],
+                "paymentRequestId" => $data['paymentRequestId'],
+            ]
+        ];
+
+        // Set HTTP response headers
+        header("Content-Type: application/json;charset=utf-8");
+        header("X-TIMESTAMP: " . $this->date);
+
+        // Encode the response as JSON and output it
+        echo json_encode($body, JSON_UNESCAPED_UNICODE);
+    }
 }
