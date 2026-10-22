@@ -44,6 +44,38 @@ const verifyCallback = async () => {
   }
 }
 
+/**
+ * Contoh pembuatan Virtual Account berstandar ASPI SNAP BI.
+ * Endpoint: /api/v1.0/transfer-va/create-va
+ */
+const generateVASnap = async () => {
+  try {
+    console.log('\n--- CONTOH GENERATE VA SNAP BI ---');
+    const response = await paylabs.createVASnap({
+      customerNo: '34534534',
+      virtualAccountNo: '14675773355545',
+      virtualAccountName: 'Jokul Doe',
+      amount: 15000,
+      paymentType: 'BCAVA',
+      virtualAccountEmail: 'jokul@email.com',
+      virtualAccountPhone: '6281828384858',
+      billDetails: [
+        {
+          billCode: '01',
+          billNo: '123456789012345678',
+          billName: 'Pembayaran Tagihan',
+          billAmount: { value: '15000.00', currency: 'IDR' },
+        },
+      ],
+    });
+    console.log('[Response VA SNAP]:', response);
+  } catch (error) {
+    console.error('[Error VA SNAP]:', error.message || error);
+  }
+};
+
 verifyCallback();
 
 generateVA();
+
+generateVASnap();
